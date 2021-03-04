@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup Label="Package References">
     <PackageReference Include="managed-midi" Version="1.9.14" />
+    <PackageReference Include="ManagedBass.Mix" Version="2.1.0" />
     <PackageReference Include="Markdig" Version="0.22.1" />
     <PackageReference Include="FFmpeg.AutoGen" Version="4.3.0.1" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="5.0.3" />
@@ -33,7 +34,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
     <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="2.0.161401" />
     <PackageReference Include="NUnit" Version="3.13.1" />
-    <PackageReference Include="ManagedBass" Version="2.0.4" />
+    <PackageReference Include="ManagedBass" Version="3.1.0" />
     <PackageReference Include="ManagedBass.Fx" Version="2.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
