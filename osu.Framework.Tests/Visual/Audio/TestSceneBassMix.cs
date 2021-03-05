@@ -2,13 +2,13 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Runtime.InteropServices;
 using ManagedBass;
 using ManagedBass.Mix;
 using ManagedBass.Fx;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -23,11 +23,15 @@ namespace osu.Framework.Tests.Visual.Audio
     public class TestSceneBassMix : FrameworkTestScene
     {
         private int mixerHandle;
-        private int trackHandle;
-        private int sfxHandle;
-        private int sfx2Handle;
+        private int subMixerHandle;
+
+        private int bgmHandle;
+
         private int sfxSampleHandle;
+        private int sfxHandle;
+
         private int sfx2SampleHandle;
+        private int sfx2Handle;
 
         private int reverbHandle;
         private int compressorHandle;
@@ -45,7 +49,7 @@ namespace osu.Framework.Tests.Visual.Audio
             {
                 channelStrips[i] = new ChannelStrip
                 {
-                    IsMixerChannel = i < num_mix_channels - 1,
+                    IsMixerChannel = { Value = i < num_mix_channels - 1 },
                     Width = 1f / num_mix_channels
                 };
             }
@@ -58,25 +62,33 @@ namespace osu.Framework.Tests.Visual.Audio
             Logger.Log($"[BASSDLL] ChannelPlay: {Bass.LastError}");
             channelHandles[num_mix_channels - 1] = mixerHandle;
 
+            // Create SubMixer
+            subMixerHandle = BassMix.CreateMixerStream(44100, 2, BassFlags.MixerNonStop | BassFlags.Decode);
+            Logger.Log($"[BASSDLL] CreateMixerStream: {Bass.LastError}");
+            // Route SubMixer into Mixer
+            BassMix.MixerAddChannel(mixerHandle, subMixerHandle, BassFlags.MixerChanBuffer);
+            Logger.Log($"Mixer Connection: {Bass.LastError}");
+            channelHandles[num_mix_channels - 2] = subMixerHandle;
+
             // Load BGM Track
             var bgmData = resources.Get("Resources.Tracks.sample-track.mp3");
-            trackHandle = Bass.CreateStream(bgmData, 0, bgmData.Length, BassFlags.Decode | BassFlags.Loop);
+            bgmHandle = Bass.CreateStream(bgmData, 0, bgmData.Length, BassFlags.Decode | BassFlags.Loop);
 
             // Apply ReplayGain
             // double replayGain = calculateReplayGain(bgmData);
             // Bass.ChannelSetAttribute(trackHandle, ChannelAttribute.Volume, BassUtils.DbToLevel(replayGain));
 
             // Add BGM Track to Mixer
-            BassMix.MixerAddChannel(mixerHandle, trackHandle, BassFlags.MixerChanPause | BassFlags.MixerChanBuffer);
+            BassMix.MixerAddChannel(mixerHandle, bgmHandle, BassFlags.MixerChanPause | BassFlags.MixerChanBuffer);
             Logger.Log($"[BASSDLL] MixerAddChannel: {Bass.LastError}");
-            channelHandles[0] = trackHandle;
+            channelHandles[0] = bgmHandle;
 
             // Load SFX1
             var sfxData = resources.Get("Resources.Samples.long.mp3");
             sfxSampleHandle = Bass.SampleLoad(sfxData, 0, sfxData.Length, 2, BassFlags.Default | BassFlags.SampleOverrideLongestPlaying);
 
             // Load SFX2
-            var sfx2Data = resources.Get("Resources.Samples.tone.wav");
+            var sfx2Data = resources.Get("Resources.Samples.tone2.wav");
             sfx2SampleHandle = Bass.SampleLoad(sfx2Data, 0, sfx2Data.Length, 2, BassFlags.Default | BassFlags.SampleOverrideLongestPlaying);
 
             Child = new FillFlowContainer
@@ -85,14 +97,6 @@ namespace osu.Framework.Tests.Visual.Audio
                 Size = new Vector2(1.0f),
                 Children = channelStrips
             };
-        }
-
-        private int getSampleHandle(byte[] data)
-        {
-            const BassFlags flags = BassFlags.Default | BassFlags.SampleOverrideLongestPlaying;
-
-            using (var handle = new ObjectHandle<byte[]>(data, GCHandleType.Pinned))
-                return Bass.SampleLoad(handle.Address, 0, data.Length, 2, flags);
         }
 
         protected override void LoadComplete()
@@ -105,27 +109,27 @@ namespace osu.Framework.Tests.Visual.Audio
             });
             AddStep("start track", () =>
             {
-                Bass.ChannelSetPosition(trackHandle, 0);
-                BassMix.ChannelFlags(trackHandle, BassFlags.Default, BassFlags.MixerChanPause);
+                Bass.ChannelSetPosition(bgmHandle, 0);
+                BassMix.ChannelFlags(bgmHandle, BassFlags.Default, BassFlags.MixerChanPause);
             });
             AddStep("stop track", () =>
             {
-                BassMix.ChannelFlags(trackHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
+                BassMix.ChannelFlags(bgmHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
             });
 
             AddStep("Reverb on", () =>
             {
-                reverbHandle = Bass.ChannelSetFX(mixerHandle, EffectType.Freeverb, 100);
+                reverbHandle = Bass.ChannelSetFX(subMixerHandle, EffectType.Freeverb, 100);
                 Bass.FXSetParameters(reverbHandle, new ReverbParameters
                 {
                     fDryMix = 1f,
-                    fWetMix = 0.1f,
+                    fWetMix = 0.25f,
                 });
                 Logger.Log($"[BASSDLL] ChannelSetFX: {Bass.LastError}");
             });
             AddStep("Reverb off", () =>
             {
-                Bass.ChannelRemoveFX(mixerHandle, reverbHandle);
+                Bass.ChannelRemoveFX(subMixerHandle, reverbHandle);
                 Logger.Log($"[BASSDLL] ChannelSetFX: {Bass.LastError}");
             });
 
@@ -151,26 +155,24 @@ namespace osu.Framework.Tests.Visual.Audio
             AddStep("Play SFX1", () =>
             {
                 sfxHandle = Bass.SampleGetChannel(sfxSampleHandle, BassFlags.Decode | BassFlags.SampleChannelStream);
-                BassMix.MixerAddChannel(mixerHandle, sfxHandle, BassFlags.MixerChanBuffer);
+                BassMix.MixerAddChannel(subMixerHandle, sfxHandle, BassFlags.MixerChanBuffer);
                 Logger.Log($"[BASSDLL] MixerAddChannel: {Bass.LastError}");
                 channelHandles[1] = sfxHandle;
-                Bass.ChannelPlay(sfxHandle);
             });
 
             AddStep("Play SFX2", () =>
             {
                 sfx2Handle = Bass.SampleGetChannel(sfx2SampleHandle, BassFlags.Decode | BassFlags.SampleChannelStream);
-                BassMix.MixerAddChannel(mixerHandle, sfx2Handle, BassFlags.MixerChanBuffer);
+                BassMix.MixerAddChannel(subMixerHandle, sfx2Handle, BassFlags.MixerChanBuffer);
                 Logger.Log($"[BASSDLL] MixerAddChannel: {Bass.LastError}");
                 channelHandles[2] = sfx2Handle;
-                Bass.ChannelPlay(sfx2Handle);
             });
 
             AddStep("Reset Peaks", () =>
             {
                 foreach (var strip in channelStrips)
                 {
-                    strip.Reset();
+                    strip.ResetPeaks();
                 }
             });
         }
@@ -179,7 +181,7 @@ namespace osu.Framework.Tests.Visual.Audio
         {
             base.Dispose(isDisposing);
 
-            Bass.StreamFree(trackHandle);
+            Bass.StreamFree(bgmHandle);
         }
 
         protected override void Update()
@@ -233,15 +235,14 @@ namespace osu.Framework.Tests.Visual.Audio
     {
         public int Handle { get; set; }
         public int BuffSize = 30;
-        public bool IsMixerChannel { get; set; } = true;
+        public Bindable<bool> IsMixerChannel = new Bindable<bool>(true);
 
         private float maxPeak = float.MinValue;
         private float peak = float.MinValue;
-        private float gain;
-        private Box volBarL;
-        private Box volBarR;
-        private SpriteText peakText;
-        private SpriteText maxPeakText;
+        private readonly Box volBarL;
+        private readonly Box volBarR;
+        private readonly SpriteText peakText;
+        private readonly SpriteText maxPeakText;
 
         public ChannelStrip(int handle = -1)
         {
@@ -274,17 +275,13 @@ namespace osu.Framework.Tests.Visual.Audio
                     Direction = FillDirection.Vertical,
                     Children = new[]
                     {
-                        peakText = new SpriteText
-                        {
-                            Text = $"{peak}dB",
-                        },
-                        maxPeakText = new SpriteText
-                        {
-                            Text = $"{maxPeak}dB",
-                        }
+                        peakText = new SpriteText { Text = "N/A" },
+                        maxPeakText = new SpriteText { Text = "N/A" }
                     }
                 }
             };
+
+            IsMixerChannel.ValueChanged += (val) => volBarL.Colour = volBarR.Colour = val.NewValue ? Colour4.Green : Colour4.GreenYellow;
         }
 
         protected override void Update()
@@ -294,14 +291,16 @@ namespace osu.Framework.Tests.Visual.Audio
             if (Handle == 0)
             {
                 volBarL.Height = 0;
+                volBarR.Height = 0;
                 peakText.Text = "N/A";
                 maxPeakText.Text = "N/A";
+
                 return;
             }
 
             float[] levels = new float[2];
 
-            if (IsMixerChannel)
+            if (IsMixerChannel.Value)
                 BassMix.ChannelGetLevel(Handle, levels, 1 / (float)BuffSize, LevelRetrievalFlags.Stereo);
             else
                 Bass.ChannelGetLevel(Handle, levels, 1 / (float)BuffSize, LevelRetrievalFlags.Stereo);
@@ -315,7 +314,7 @@ namespace osu.Framework.Tests.Visual.Audio
             maxPeakText.Text = $"{BassUtils.LevelToDb(maxPeak):F}dB";
         }
 
-        public void Reset()
+        public void ResetPeaks()
         {
             peak = float.MinValue;
             maxPeak = float.MinValue;
