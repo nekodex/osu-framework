@@ -36,13 +36,13 @@
     <PackageReference Include="ManagedBass.Mix" Version="3.1.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
-    <PackageReference Include="ppy.osuTK.NS20" Version="1.0.178" />
+    <PackageReference Include="ppy.osuTK.NS20" Version="1.0.185" />
     <PackageReference Include="StbiSharp" Version="1.0.13" />
-    <PackageReference Include="ppy.SDL2-CS" Version="1.0.468-alpha" />
+    <PackageReference Include="ppy.SDL2-CS" Version="1.0.486-alpha" />
 
     <!-- Any version ahead of this will cause AOT issues with iOS
          See https://github.com/mono/mono/issues/21188 -->
-    <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="2.0.161401"/>
+    <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="2.0.161401" />
 
     <!-- Any version ahead of this will cause runtime issues on iOS
          See https://github.com/xoofx/markdig/issues/564 -->

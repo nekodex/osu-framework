@@ -16,6 +16,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Framework.Testing.Drawables.Steps;
 using osu.Framework.Threading;
@@ -201,31 +202,21 @@ namespace osu.Framework.Testing
             }
             catch (Exception e)
             {
+                Logging.Logger.Log($"💥 Step #{actionIndex + 1} {loadableStep?.ToString() ?? string.Empty}");
+                LoadingComponentsLogger.LogAndFlush();
                 onError?.Invoke(e);
                 return;
             }
-
-            string text = ".";
-
-            if (actionRepetition == 0)
-            {
-                text = $"{(int)Time.Current}: ".PadLeft(7);
-
-                if (actionIndex < 0)
-                    text += $"{GetType().ReadableName()}";
-                else
-                    text += $"step {actionIndex + 1} {loadableStep?.ToString() ?? string.Empty}";
-            }
-
-            Console.Write(text);
 
             actionRepetition++;
 
             if (actionRepetition > (loadableStep?.RequiredRepetitions ?? 1) - 1)
             {
+                if (actionIndex >= 0)
+                    Logging.Logger.Log($"🔸 Step #{actionIndex + 1} {loadableStep?.ToString() ?? string.Empty}");
+
                 actionIndex++;
                 actionRepetition = 0;
-                Console.WriteLine();
 
                 if (loadableStep != null && stopCondition?.Invoke(loadableStep) == true)
                     return;
@@ -233,6 +224,7 @@ namespace osu.Framework.Testing
 
             if (actionIndex > StepsContainer.Children.Count - 1)
             {
+                Logging.Logger.Log($"✅ {GetType().ReadableName()} completed");
                 onCompletion?.Invoke();
                 return;
             }

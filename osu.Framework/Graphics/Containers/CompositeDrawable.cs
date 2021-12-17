@@ -26,6 +26,7 @@ using osu.Framework.Extensions.ExceptionExtensions;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Layout;
+using osu.Framework.Logging;
 using osu.Framework.Testing;
 using osu.Framework.Utils;
 
@@ -85,9 +86,9 @@ namespace osu.Framework.Graphics.Containers
 
         private WeakList<Drawable> loadingComponents;
 
-        private static readonly ThreadedTaskScheduler threaded_scheduler = new ThreadedTaskScheduler(4, nameof(LoadComponentsAsync));
+        private static readonly ThreadedTaskScheduler threaded_scheduler = new ThreadedTaskScheduler(4, nameof(LoadComponentsAsync) + " (standard)");
 
-        private static readonly ThreadedTaskScheduler long_load_scheduler = new ThreadedTaskScheduler(4, nameof(LoadComponentsAsync));
+        private static readonly ThreadedTaskScheduler long_load_scheduler = new ThreadedTaskScheduler(4, nameof(LoadComponentsAsync) + " (long load)");
 
         /// <summary>
         /// Loads a future child or grand-child of this <see cref="CompositeDrawable"/> asynchronously. <see cref="Dependencies"/>
@@ -159,7 +160,13 @@ namespace osu.Framework.Graphics.Containers
             foreach (var d in loadables)
             {
                 loadingComponents.Add(d);
-                d.OnLoadComplete += _ => loadingComponents.Remove(d);
+                LoadingComponentsLogger.Add(d);
+
+                d.OnLoadComplete += _ =>
+                {
+                    loadingComponents.Remove(d);
+                    LoadingComponentsLogger.Remove(d);
+                };
             }
 
             var taskScheduler = loadables.Any(c => c.IsLongRunning) ? long_load_scheduler : threaded_scheduler;
@@ -267,7 +274,7 @@ namespace osu.Framework.Graphics.Containers
             try
             {
                 if (IsDisposed)
-                    throw new ObjectDisposedException(ToString(), "Disposed Drawables may not have children added.");
+                    throw new ObjectDisposedException(ToString(), "Disposed drawables may not have children added.");
 
                 child.Load(Clock, Dependencies, false);
 
@@ -301,7 +308,10 @@ namespace osu.Framework.Graphics.Containers
             if (loadingComponents != null)
             {
                 foreach (var d in loadingComponents)
+                {
                     d.Dispose();
+                    LoadingComponentsLogger.Remove(d);
+                }
             }
 
             OnAutoSize = null;
@@ -345,6 +355,9 @@ namespace osu.Framework.Graphics.Containers
             }
             set
             {
+                if (IsDisposed)
+                    throw new ObjectDisposedException(ToString(), "Disposed drawables may not have children set.");
+
                 ClearInternal();
                 AddInternal(value);
             }
@@ -414,6 +427,9 @@ namespace osu.Framework.Graphics.Containers
         {
             set
             {
+                if (IsDisposed)
+                    throw new ObjectDisposedException(ToString(), "Children cannot be mutated on a disposed drawable.");
+
                 ClearInternal();
                 AddRangeInternal(value);
             }
@@ -500,6 +516,9 @@ namespace osu.Framework.Graphics.Containers
         {
             EnsureChildMutationAllowed();
 
+            if (IsDisposed)
+                throw new ObjectDisposedException(ToString(), "Children cannot be cleared on a disposed drawable.");
+
             if (internalChildren.Count == 0) return;
 
             foreach (Drawable t in internalChildren)
@@ -539,7 +558,7 @@ namespace osu.Framework.Graphics.Containers
             EnsureChildMutationAllowed();
 
             if (IsDisposed)
-                throw new ObjectDisposedException(ToString(), "Disposed Drawables may not have children added.");
+                throw new ObjectDisposedException(ToString(), "Children cannot be mutated on a disposed drawable.");
 
             if (drawable == null)
                 throw new ArgumentNullException(nameof(drawable), $"null {nameof(Drawable)}s may not be added to {nameof(CompositeDrawable)}.");
