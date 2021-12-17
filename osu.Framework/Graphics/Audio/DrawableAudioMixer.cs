@@ -11,7 +11,7 @@ using osu.Framework.Graphics.Containers;
 
 namespace osu.Framework.Graphics.Audio
 {
-    public class DrawableAudioMixer : AudioContainer, IAudioMixer
+    public class DrawableAudioMixer : AudioContainer
     {
         private AudioMixer globalMixer;
         private AudioMixer mixer;
@@ -25,8 +25,6 @@ namespace osu.Framework.Graphics.Audio
         }
 
         public BindableList<IEffectParameter> Effects { get; } = new BindableList<IEffectParameter>();
-
-        public BindableList<IAudioChannel> Channels => mixer.Channels;
 
         public void Add(IAudioChannel channel)
         {

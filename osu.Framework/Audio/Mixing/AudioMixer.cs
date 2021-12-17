@@ -74,6 +74,10 @@ namespace osu.Framework.Audio.Mixing
         /// <param name="channel">The <see cref="IAudioChannel"/> to remove.</param>
         protected abstract void RemoveInternal(IAudioChannel channel);
 
+        public abstract float[] GetLevel(float length);
+
+        public abstract float[] GetChannelLevel(IAudioChannel channel, float length);
+
         #region IAudioChannel
 
         public virtual AudioMixer? Mixer { get; set; }
