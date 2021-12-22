@@ -93,6 +93,11 @@ namespace osu.Framework.Audio.Mixing.Bass
                 ChannelPlay(bassChannel);
         }
 
+        public void AddPlz(IAudioChannel channel)
+        {
+            AddInternal(channel);
+        }
+
         protected override void RemoveInternal(IAudioChannel channel)
         {
             Debug.Assert(CanPerformInline);
@@ -500,9 +505,9 @@ namespace osu.Framework.Audio.Mixing.Bass
         {
             base.Dispose(disposing);
 
-            // Move all contained channels back to the default mixer.
-            foreach (var channel in ActiveChannels.ToArray())
-                Remove(channel);
+            // // Move all contained channels back to the default mixer.
+            // foreach (var channel in ActiveChannels.ToArray())
+            //     Remove(channel);
 
             if (Handle != 0)
             {
@@ -566,25 +571,33 @@ namespace osu.Framework.Audio.Mixing.Bass
                     if (loopDetected)
                         throw new InvalidOperationException("Mixer loop detected");
 
-                    Mixer?.RemoveItem(this);
-                    value?.AddItem(this);
+                    if (value != null)
+                    {
+                        value.AddItem(this);
+                        Mixer?.RemoveItem(this); // TODO: handle null mixer case
+                    }
 
                     if (Handle != 0)
-                        ManagedBass.Bass.StreamFree(Handle);
-
-                    base.Mixer = value;
-
-                    if (Mixer != null)
                     {
-                        var newMixer = bassMixer;
-                        newMixer.EnqueueAction(createMixer);
+                        ManagedBass.Bass.StreamFree(Handle);
+                        Handle = 0;
+                    }
+
+                    if (value is BassAudioMixer bassAudioMixer1)
+                    {
+                        bassAudioMixer1.EnqueueAction(createMixer);
+                    }
+                    else
+                    {
+                        EnqueueAction(createMixer);
                     }
                 }
 
-                if (Mixer != null)
+                base.Mixer = value;
+
+                if (value is BassAudioMixer bassAudioMixer2)
                 {
-                    var newMixer = bassMixer;
-                    newMixer.EnqueueAction(() => newMixer.AddInternal(this));
+                    EnqueueAction(() => bassAudioMixer2.AddInternal(this));
                 }
             }
         }

@@ -87,7 +87,7 @@ namespace osu.Framework.Tests.Audio
                 Name = GameThread.PrefixedThreadNameFor("Audio")
             }.Start();
 
-            if (!resetEvent.WaitOne(TimeSpan.FromSeconds(10)))
+            if (!resetEvent.WaitOne(TimeSpan.FromSeconds(10000)))
                 throw new TimeoutException();
         }
 

@@ -7,6 +7,7 @@ using System;
 using System.Threading.Tasks;
 using ManagedBass;
 using osu.Framework.Bindables;
+using osu.Framework.Logging;
 
 namespace osu.Framework.Audio.Mixing
 {
@@ -85,5 +86,12 @@ namespace osu.Framework.Audio.Mixing
         Task IAudioChannel.EnqueueAction(Action action) => EnqueueAction(action);
 
         #endregion
+
+        protected override void Dispose(bool disposing)
+        {
+            Logger.Log($"DISPOSALDISPOSAL: {Identifier}");
+
+            base.Dispose(disposing);
+        }
     }
 }
