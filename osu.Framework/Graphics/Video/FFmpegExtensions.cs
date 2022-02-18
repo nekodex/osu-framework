@@ -16,8 +16,6 @@ namespace osu.Framework.Graphics.Video
                 case AVPixelFormat.AV_PIX_FMT_VDPAU:
                 case AVPixelFormat.AV_PIX_FMT_CUDA:
                 case AVPixelFormat.AV_PIX_FMT_VAAPI:
-                case AVPixelFormat.AV_PIX_FMT_VAAPI_IDCT:
-                case AVPixelFormat.AV_PIX_FMT_VAAPI_MOCO:
                 case AVPixelFormat.AV_PIX_FMT_DXVA2_VLD:
                 case AVPixelFormat.AV_PIX_FMT_QSV:
                 case AVPixelFormat.AV_PIX_FMT_VIDEOTOOLBOX:
