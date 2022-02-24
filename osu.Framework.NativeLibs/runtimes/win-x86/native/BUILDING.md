@@ -8,8 +8,8 @@ sudo apt-get update
 sudo apt-get install make nasm gcc mingw-w64
 
 # grab & extract source
-curl https://ffmpeg.org/releases/ffmpeg-4.3.3.tar.gz | tar zxf -
-cd ffmpeg-4.3.3
+curl https://ffmpeg.org/releases/ffmpeg-5.0.tar.gz | tar zxf -
+cd ffmpeg-5.0
 
 # build 32-bit libs
 ./configure --disable-programs --disable-doc --disable-static --disable-debug --enable-shared --arch=x86 --target-os=mingw32 --cross-prefix=i686-w64-mingw32- --prefix=build-win32
