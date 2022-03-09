@@ -265,8 +265,9 @@ namespace osu.Framework.Graphics.Video
                 return 0;
 
             var span = new Span<byte>(bufferPtr, bufferSize);
+            int read = decoder.videoStream.Read(span);
 
-            return decoder.videoStream.Read(span);
+            return read == 0 ? AGffmpeg.AVERROR_EOF : read;
         }
 
         [MonoPInvokeCallback(typeof(avio_alloc_context_seek))]
